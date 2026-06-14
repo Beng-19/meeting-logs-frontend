@@ -1,25 +1,26 @@
-import logo from './logo.svg';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
+import MeetingList from './pages/MeetingList';
+import MeetingDetail from './pages/MeetingDetail';
+import MemberList from './pages/MemberList';
 import './App.css';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <BrowserRouter>
+            <nav>
+                <span className="brand">🏢 Meeting Logs</span>
+                <NavLink to="/">📋 Danh sách họp</NavLink>
+                <NavLink to="/members">👥 Thành viên</NavLink>
+            </nav>
+
+            <Routes>
+                <Route path="/" element={<MeetingList />} />
+                <Route path="/meetings/:id" element={<MeetingDetail />} />
+                <Route path="/members" element={<MemberList />} />
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
 export default App;
