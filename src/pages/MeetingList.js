@@ -29,7 +29,7 @@ function MeetingList() {
         } catch (err) {
             console.error(err);
         } finally {
-            value => setLoading(false);
+            setLoading(false);
         }
     };
 
