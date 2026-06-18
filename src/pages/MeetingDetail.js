@@ -7,46 +7,47 @@ function MeetingDetail() {
     const [meeting, setMeeting] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Thêm các state quản lý việc chỉnh sửa
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({});
 
-    // Danh sách các tùy chọn mẫu cho hệ thống của mày
     const teamsList = ['TECH', 'MKT', 'DESIGN', 'HR'];
     const projectsList = ['59.0_SecurityZone', 'Website StarTech', 'Xây dựng hệ thống AI', 'MKT_SZone'];
     const customersList = ['KH-001', 'KH-002', 'KH-003', 'KH-004'];
 
     useEffect(() => {
+        setLoading(true);
         api.get(`/meetings/${id}`)
             .then(res => {
-                setMeeting(res.data);
-                setFormData(res.data); // Sao chép dữ liệu để đưa vào form sửa
+                if (res.data) {
+                    setMeeting(res.data);
+                    setFormData(res.data);
+                }
             })
-            .catch(err => console.error(err))
+            .catch(err => {
+                console.error("Lỗi lấy chi tiết cuộc họp từ API:", err);
+            })
             .finally(() => setLoading(false));
     }, [id]);
 
-    // Hàm cập nhật state khi nhập liệu
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    // Hàm gọi API PUT gửi dữ liệu chỉnh sửa lên backend Laravel
     const handleSave = () => {
         api.put(`/meetings/${id}`, formData)
             .then(res => {
-                setMeeting(formData); // Cập nhật lại dữ liệu hiển thị gốc
-                setIsEditing(false);  // Tắt chế độ chỉnh sửa
+                setMeeting(formData);
+                setIsEditing(false);
                 alert("Đã lưu thay đổi thành công!");
             })
             .catch(err => {
                 console.error(err);
-                alert("Lỗi! Không thể lưu thay đổi.");
+                alert("Lỗi! Không thể lưu dữ liệu lên hệ thống.");
             });
     };
 
     if (loading) return <div className="page"><div className="empty">⏳ Đang tải...</div></div>;
-    if (!meeting) return <div className="page"><div className="empty">❌ Không tìm thấy cuộc họp!</div></div>;
+    if (!meeting) return <div className="page"><div className="empty">❌ Không tìm thấy cuộc họp hoặc API Backend đang lỗi!</div></div>;
 
     return (
         <div className="page">
@@ -54,45 +55,35 @@ function MeetingDetail() {
 
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1>📄 Chi tiết cuộc họp</h1>
-                    
-                    {/* Sửa trường Tuần ngay trên Header */}
-                    {isEditing ? (
-                        <input 
-                            type="text" 
-                            value={formData.week || ''} 
-                            onChange={e => handleInputChange('week', e.target.value)}
-                            style={{ padding: '4px 8px', width: '100px', fontSize: '14px', marginTop: '6px' }}
-                        />
-                    ) : (
-                        <span className="badge badge-week" style={{ fontSize: 14, padding: '6px 14px' }}>{meeting.week}</span>
-                    )}
+                    <h1>📄 Chi tiết cuộc họp #{id}</h1>
+                    <div style={{ marginTop: 8 }}>
+                        {isEditing ? (
+                            <input 
+                                type="text" 
+                                value={formData.week || ''} 
+                                placeholder="Nhập tuần (VD: Tuần 24)"
+                                onChange={e => handleInputChange('week', e.target.value)}
+                                style={{ padding: '4px 8px', width: '120px', fontSize: '14px' }}
+                            />
+                        ) : (
+                            <span className="badge badge-week" style={{ fontSize: 14, padding: '6px 14px' }}>
+                                {meeting.week || 'Chưa phân tuần'}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
-                {/* Khối nút điều khiển hành động Chỉnh sửa / Lưu */}
                 <div>
                     {!isEditing ? (
-                        <button 
-                            className="btn btn-primary" 
-                            onClick={() => setIsEditing(true)}
-                            style={{ padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold' }}
-                        >
+                        <button className="btn btn-primary" onClick={() => setIsEditing(true)} style={{ padding: '8px 16px', fontWeight: 'bold' }}>
                             ✏️ Chỉnh sửa
                         </button>
                     ) : (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button 
-                                className="btn" 
-                                onClick={() => { setIsEditing(false); setFormData(meeting); }}
-                                style={{ background: '#eee', color: '#333', padding: '8px 16px', cursor: 'pointer' }}
-                            >
+                            <button className="btn" onClick={() => { setIsEditing(false); setFormData(meeting); }} style={{ background: '#eee', color: '#333', padding: '8px 16px' }}>
                                 Hủy
                             </button>
-                            <button 
-                                className="btn btn-primary" 
-                                onClick={handleSave}
-                                style={{ background: '#28a745', padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
+                            <button className="btn btn-primary" onClick={handleSave} style={{ background: '#28a745', padding: '8px 16px', fontWeight: 'bold' }}>
                                 💾 Lưu
                             </button>
                         </div>
@@ -100,7 +91,6 @@ function MeetingDetail() {
                 </div>
             </div>
 
-            {/* Thông tin cơ bản */}
             <div className="card">
                 <h2 style={{ fontSize: 16, color: '#8B0000', marginBottom: 16, fontWeight: 700 }}>
                     📌 Thông tin chung
@@ -115,7 +105,6 @@ function MeetingDetail() {
                         </span>
                     </div>
 
-                    {/* Trường Sửa Thời lượng */}
                     <div className="info-item">
                         <span className="info-label">Thời lượng</span>
                         <span className="info-value">
@@ -132,7 +121,6 @@ function MeetingDetail() {
                         </span>
                     </div>
 
-                    {/* Trường Sửa Team */}
                     <div className="info-item">
                         <span className="info-label">Team</span>
                         <span className="info-value">
@@ -151,7 +139,6 @@ function MeetingDetail() {
                         </span>
                     </div>
 
-                    {/* Trường Sửa Leader */}
                     <div className="info-item">
                         <span className="info-label">Leader tham gia</span>
                         <span className="info-value">
@@ -168,7 +155,6 @@ function MeetingDetail() {
                         </span>
                     </div>
 
-                    {/* Trường Sửa Customer ID */}
                     <div className="info-item">
                         <span className="info-label">Customer ID</span>
                         <span className="info-value">
@@ -187,7 +173,6 @@ function MeetingDetail() {
                         </span>
                     </div>
 
-                    {/* Trường Sửa Project ID */}
                     <div className="info-item">
                         <span className="info-label">Project ID</span>
                         <span className="info-value">
@@ -221,7 +206,6 @@ function MeetingDetail() {
                 </div>
             </div>
 
-            {/* Summary - Cho phép sửa Textarea nội dung tóm tắt */}
             <div className="card">
                 <h2 style={{ fontSize: 16, color: '#8B0000', marginBottom: 16, fontWeight: 700 }}>
                     📝 Tóm tắt nội dung cuộc họp
