@@ -10,7 +10,10 @@ function MeetingList() {
     const [page, setPage] = useState(1);
     const PER_PAGE = 15;
 
-    // Danh sách mẫu cho các ô dropdown (Mày có thể sửa lại value theo đúng thực tế công ty)
+    // State lưu cấu hình ô đang được sửa (Inline Editing)
+    const [editingCell, setEditingCell] = useState({ id: null, field: null });
+    const [editingValue, setEditingValue] = useState('');
+
     const teamsList = ['TECH', 'MKT', 'DESIGN', 'HR'];
     const projectsList = ['59.0_SecurityZone', 'Website StarTech', 'Xây dựng hệ thống AI', 'MKT_SZone'];
     const customersList = ['KH-001', 'KH-002', 'KH-003', 'KH-004'];
@@ -33,18 +36,24 @@ function MeetingList() {
         }
     };
 
-    // Hàm cập nhật nhanh dữ liệu (Project, Customer, Team...) trực tiếp tại trang chính
+    // Hàm xử lý lưu thay đổi của bất kỳ trường nào xuống cơ sở dữ liệu
     const handleUpdateField = async (id, field, value) => {
         try {
-            // Gửi request PUT/PATCH lên Laravel để cập nhật DB
+            // Gửi request PUT lên Laravel backend
             await api.put(`/meetings/${id}`, { [field]: value });
             
-            // Cập nhật lại State local ngay lập tức để giao diện mượt mà không cần load lại trang
+            // Cập nhật State tức thì trên giao diện
             setMeetings(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+            setEditingCell({ id: null, field: null }); // Tắt chế độ sửa
         } catch (err) {
-            console.error("Lỗi cập nhật trường dữ liệu:", err);
-            alert("Không thể cập nhật dữ liệu, vui lòng kiểm tra lại!");
+            console.error("Lỗi cập nhật:", err);
+            alert("Không thể lưu thay đổi, vui lòng thử lại!");
         }
+    };
+
+    const startEditing = (id, field, initialValue) => {
+        setEditingCell({ id, field });
+        setEditingValue(initialValue || '');
     };
 
     const totalPages = Math.ceil(meetings.length / PER_PAGE);
@@ -98,22 +107,45 @@ function MeetingList() {
                                     <th>Team</th>
                                     <th>Leader</th>
                                     <th>Thời lượng</th>
-                                    <th>Chi tiết</th>
+                                    <th>Hành động</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paginated.map((m, i) => (
                                     <tr key={m.id}>
                                         <td style={{ color: '#888', fontSize: 13 }}>{(page - 1) * PER_PAGE + i + 1}</td>
-                                        <td><span className="badge badge-week">{m.week}</span></td>
+                                        
+                                        {/* Sửa Tuần */}
+                                        <td>
+                                            {editingCell.id === m.id && editingCell.field === 'week' ? (
+                                                <input 
+                                                    value={editingValue}
+                                                    style={{ width: '80px', padding: '4px' }}
+                                                    onChange={e => setEditingValue(e.target.value)}
+                                                    onBlur={() => handleUpdateField(m.id, 'week', editingValue)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleUpdateField(m.id, 'week', editingValue)}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <span 
+                                                    className="badge badge-week" 
+                                                    style={{ cursor: 'pointer' }} 
+                                                    onClick={() => startEditing(m.id, 'week', m.week)}
+                                                    title="Bấm để sửa"
+                                                >
+                                                    {m.week || '—'} ✏️
+                                                </span>
+                                            )}
+                                        </td>
+
                                         <td style={{ whiteSpace: 'nowrap' }}>{formatDate(m.meeting_time)}</td>
-                                        <td style={{ maxWidth: 220 }}>
+                                        <td style={{ maxWidth: 200 }}>
                                             <span style={{ color: '#333', lineHeight: 1.5 }}>
-                                                {m.summary ? m.summary.substring(0, 70) + '...' : '—'}
+                                                {m.summary ? m.summary.substring(0, 60) + '...' : '—'}
                                             </span>
                                         </td>
                                         
-                                        {/* Dropdown Customer ID chọn trực tiếp */}
+                                        {/* Dropdown Customer ID */}
                                         <td>
                                             <select 
                                                 value={m.customer_id || ''} 
@@ -125,7 +157,7 @@ function MeetingList() {
                                             </select>
                                         </td>
 
-                                        {/* Dropdown Project ID chọn trực tiếp */}
+                                        {/* Dropdown Project ID */}
                                         <td>
                                             <select 
                                                 value={m.project_id || ''} 
@@ -137,7 +169,7 @@ function MeetingList() {
                                             </select>
                                         </td>
 
-                                        {/* Dropdown Team chọn trực tiếp */}
+                                        {/* Dropdown Team */}
                                         <td>
                                             <select 
                                                 value={m.team || ''} 
@@ -149,8 +181,51 @@ function MeetingList() {
                                             </select>
                                         </td>
 
-                                        <td style={{ fontSize: 13, color: '#555' }}>{m.leader_names || '—'}</td>
-                                        <td><span className="badge badge-duration">{m.duration || '—'}</span></td>
+                                        {/* Sửa nhanh Leader */}
+                                        <td>
+                                            {editingCell.id === m.id && editingCell.field === 'leader_names' ? (
+                                                <input 
+                                                    value={editingValue}
+                                                    style={{ width: '100px', padding: '4px' }}
+                                                    onChange={e => setEditingValue(e.target.value)}
+                                                    onBlur={() => handleUpdateField(m.id, 'leader_names', editingValue)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleUpdateField(m.id, 'leader_names', editingValue)}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <span 
+                                                    style={{ cursor: 'pointer', fontSize: 13, color: '#555' }}
+                                                    onClick={() => startEditing(m.id, 'leader_names', m.leader_names)}
+                                                    title="Bấm để sửa"
+                                                >
+                                                    {m.leader_names || '—'} ✏️
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {/* Sửa nhanh Thời lượng */}
+                                        <td>
+                                            {editingCell.id === m.id && editingCell.field === 'duration' ? (
+                                                <input 
+                                                    value={editingValue}
+                                                    style={{ width: '70px', padding: '4px' }}
+                                                    onChange={e => setEditingValue(e.target.value)}
+                                                    onBlur={() => handleUpdateField(m.id, 'duration', editingValue)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleUpdateField(m.id, 'duration', editingValue)}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <span 
+                                                    className="badge badge-duration"
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => startEditing(m.id, 'duration', m.duration)}
+                                                    title="Bấm để sửa"
+                                                >
+                                                    {m.duration || '—'} ✏️
+                                                </span>
+                                            )}
+                                        </td>
+
                                         <td>
                                             <Link to={`/meetings/${m.id}`} className="btn btn-primary btn-sm">Xem</Link>
                                         </td>
@@ -192,10 +267,6 @@ function MeetingList() {
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
                             >Sau →</button>
-
-                            <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>
-                                Trang {page}/{totalPages}
-                            </span>
                         </div>
                     </>
                 )}
