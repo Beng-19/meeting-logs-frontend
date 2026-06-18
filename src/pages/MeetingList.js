@@ -10,6 +10,11 @@ function MeetingList() {
     const [page, setPage] = useState(1);
     const PER_PAGE = 15;
 
+    // Danh sách mẫu cho các ô dropdown (Mày có thể sửa lại value theo đúng thực tế công ty)
+    const teamsList = ['TECH', 'MKT', 'DESIGN', 'HR'];
+    const projectsList = ['59.0_SecurityZone', 'Website StarTech', 'Xây dựng hệ thống AI', 'MKT_SZone'];
+    const customersList = ['KH-001', 'KH-002', 'KH-003', 'KH-004'];
+
     useEffect(() => { fetchMeetings(); }, []);
 
     const fetchMeetings = async () => {
@@ -24,7 +29,21 @@ function MeetingList() {
         } catch (err) {
             console.error(err);
         } finally {
-            setLoading(false);
+            value => setLoading(false);
+        }
+    };
+
+    // Hàm cập nhật nhanh dữ liệu (Project, Customer, Team...) trực tiếp tại trang chính
+    const handleUpdateField = async (id, field, value) => {
+        try {
+            // Gửi request PUT/PATCH lên Laravel để cập nhật DB
+            await api.put(`/meetings/${id}`, { [field]: value });
+            
+            // Cập nhật lại State local ngay lập tức để giao diện mượt mà không cần load lại trang
+            setMeetings(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+        } catch (err) {
+            console.error("Lỗi cập nhật trường dữ liệu:", err);
+            alert("Không thể cập nhật dữ liệu, vui lòng kiểm tra lại!");
         }
     };
 
@@ -74,6 +93,8 @@ function MeetingList() {
                                     <th>Tuần</th>
                                     <th>Ngày họp</th>
                                     <th>Nội dung tóm tắt</th>
+                                    <th>Customer ID</th>
+                                    <th>Project ID</th>
                                     <th>Team</th>
                                     <th>Leader</th>
                                     <th>Thời lượng</th>
@@ -86,12 +107,48 @@ function MeetingList() {
                                         <td style={{ color: '#888', fontSize: 13 }}>{(page - 1) * PER_PAGE + i + 1}</td>
                                         <td><span className="badge badge-week">{m.week}</span></td>
                                         <td style={{ whiteSpace: 'nowrap' }}>{formatDate(m.meeting_time)}</td>
-                                        <td style={{ maxWidth: 320 }}>
+                                        <td style={{ maxWidth: 220 }}>
                                             <span style={{ color: '#333', lineHeight: 1.5 }}>
-                                                {m.summary ? m.summary.substring(0, 100) + '...' : '—'}
+                                                {m.summary ? m.summary.substring(0, 70) + '...' : '—'}
                                             </span>
                                         </td>
-                                        <td>{m.team ? <span className="badge badge-team">{m.team}</span> : '—'}</td>
+                                        
+                                        {/* Dropdown Customer ID chọn trực tiếp */}
+                                        <td>
+                                            <select 
+                                                value={m.customer_id || ''} 
+                                                onChange={(e) => handleUpdateField(m.id, 'customer_id', e.target.value)}
+                                                style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                            >
+                                                <option value="">— Chọn —</option>
+                                                {customersList.map(cust => <option key={cust} value={cust}>{cust}</option>)}
+                                            </select>
+                                        </td>
+
+                                        {/* Dropdown Project ID chọn trực tiếp */}
+                                        <td>
+                                            <select 
+                                                value={m.project_id || ''} 
+                                                onChange={(e) => handleUpdateField(m.id, 'project_id', e.target.value)}
+                                                style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                            >
+                                                <option value="">— Chọn —</option>
+                                                {projectsList.map(proj => <option key={proj} value={proj}>{proj}</option>)}
+                                            </select>
+                                        </td>
+
+                                        {/* Dropdown Team chọn trực tiếp */}
+                                        <td>
+                                            <select 
+                                                value={m.team || ''} 
+                                                onChange={(e) => handleUpdateField(m.id, 'team', e.target.value)}
+                                                style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                            >
+                                                <option value="">—</option>
+                                                {teamsList.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </td>
+
                                         <td style={{ fontSize: 13, color: '#555' }}>{m.leader_names || '—'}</td>
                                         <td><span className="badge badge-duration">{m.duration || '—'}</span></td>
                                         <td>
